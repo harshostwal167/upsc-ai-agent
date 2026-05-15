@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, AlertCircle, BookOpen, Trophy, Radio, Zap, Search, Settings, RefreshCw, Filter } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ChevronDown, AlertCircle, Radio, RefreshCw } from 'lucide-react';
 
 const UPSCAgent = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [newsData, setNewsData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
-  const [filterType, setFilterType] = useState('all');
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
   const categories = [
@@ -94,18 +92,17 @@ const UPSCAgent = () => {
     ],
   };
 
-  const fetchNews = async () => {
+  const fetchNews = useCallback(() => {
     setLoading(true);
     setTimeout(() => {
-      setNewsData(mockNewsData);
       setLastUpdated(new Date());
       setLoading(false);
     }, 1500);
-  };
+  }, []);
 
   useEffect(() => {
     fetchNews();
-  }, []);
+  }, [fetchNews]);
 
   const getNewsForCategory = () => {
     if (selectedCategory === 'all') {
@@ -114,10 +111,7 @@ const UPSCAgent = () => {
     return mockNewsData[selectedCategory] || [];
   };
 
-  const filteredNews = getNewsForCategory().filter((item) => {
-    if (filterType === 'high') return item.relevance === 'high';
-    return true;
-  });
+  const filteredNews = getNewsForCategory();
 
   const renderTabContent = () => {
     if (activeTab === 'dashboard') {
