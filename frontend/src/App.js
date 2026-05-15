@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronDown, AlertCircle, Radio, RefreshCw } from 'lucide-react';
 
+const API_BASE = 'https://upsc-ai-agent.onrender.com/api';
+
 const UPSCAgent = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [newsData, setNewsData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [error, setError] = useState(null);
 
   const categories = [
     { id: 'prelims', label: 'Prelims', icon: '📋', color: 'from-blue-500 to-blue-600' },
@@ -23,81 +27,21 @@ const UPSCAgent = () => {
     { id: 'prs', name: 'PRS India', url: 'https://prsindia.org' },
   ];
 
-  const mockNewsData = {
-    prelims: [
-      {
-        id: 1,
-        title: 'New Cabinet Ministers Appointed',
-        topic: 'Political Science',
-        source: 'PIB',
-        date: '2025-05-15',
-        relevance: 'high',
-        summary: 'Cabinet reshuffle with 5 new ministers appointed across key portfolios.',
-        content: 'The Prime Minister announced a major cabinet reshuffle. Key articles: Article 75-78.',
-      },
-      {
-        id: 2,
-        title: 'RBI Announces New Monetary Policy',
-        topic: 'Economics',
-        source: 'RBI',
-        date: '2025-05-14',
-        relevance: 'high',
-        summary: 'RBI maintains repo rate at 6.5% amid inflation concerns.',
-        content: 'The Reserve Bank of India announced its latest monetary policy stance.',
-      },
-    ],
-    mains: [
-      {
-        id: 3,
-        title: 'Federal Structure and Centre-State Relations',
-        topic: 'Government & Politics',
-        source: 'The Hindu',
-        date: '2025-05-15',
-        relevance: 'high',
-        summary: 'Analysis of recent Supreme Court judgment on GST distribution.',
-        content: 'Comprehensive analysis of the federal structure in India.',
-        essay: 'Analyze the evolution of Centre-State relations in post-independent India.',
-      },
-    ],
-    interview: [
-      {
-        id: 4,
-        title: 'How to Prepare for UPSC Interview',
-        topic: 'Interview Strategy',
-        source: 'UPSC Analysis',
-        date: '2025-05-15',
-        relevance: 'high',
-        summary: 'Tips on linking recent events to governance frameworks.',
-        content: 'Interview boards often ask candidates to relate current affairs to governance.',
-        questions: [
-          'Recent RBI monetary policy - implications for financial inclusion?',
-          'Cabinet reshuffle - what does it suggest about government priorities?',
-        ],
-      },
-    ],
-    'current-affairs': [
-      {
-        id: 5,
-        title: 'Weekly Current Affairs Summary',
-        topic: 'Weekly Summary',
-        source: 'Multiple Sources',
-        date: '2025-05-15',
-        relevance: 'high',
-        summary: 'Comprehensive weekly summary of major events.',
-        sections: {
-          National: ['Cabinet reshuffle announced', 'RBI monetary policy review'],
-          International: ['UN Climate Summit', 'Trade negotiations'],
-        },
-      },
-    ],
-  };
-
-  const fetchNews = useCallback(() => {
+  const fetchNews = useCallback(async () => {
     setLoading(true);
-    setTimeout(() => {
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE}/news`);
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      const data = await response.json();
+      setNewsData(data);
       setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Failed to fetch news:', err);
+      setError('Could not connect to backend. Please try again.');
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   }, []);
 
   useEffect(() => {
@@ -105,13 +49,19 @@ const UPSCAgent = () => {
   }, [fetchNews]);
 
   const getNewsForCategory = () => {
+    if (!newsData) return [];
     if (selectedCategory === 'all') {
-      return Object.values(mockNewsData).flat();
+      return Object.values(newsData).flat();
     }
-    return mockNewsData[selectedCategory] || [];
+    return newsData[selectedCategory] || [];
   };
 
   const filteredNews = getNewsForCategory();
+
+  const getCount = (key) => {
+    if (!newsData) return 0;
+    return newsData[key]?.length || 0;
+  };
 
   const renderTabContent = () => {
     if (activeTab === 'dashboard') {
@@ -119,10 +69,10 @@ const UPSCAgent = () => {
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
-              { label: 'Prelims Items', count: mockNewsData.prelims?.length || 0, color: 'bg-blue-50 border-blue-200' },
-              { label: 'Mains Items', count: mockNewsData.mains?.length || 0, color: 'bg-purple-50 border-purple-200' },
-              { label: 'Interview Tips', count: mockNewsData.interview?.length || 0, color: 'bg-orange-50 border-orange-200' },
-              { label: 'CA Updates', count: mockNewsData['current-affairs']?.length || 0, color: 'bg-green-50 border-green-200' },
+              { label: 'Prelims Items', count: getCount('prelims'), color: 'bg-blue-50 border-blue-200' },
+              { label: 'Mains Items', count: getCount('mains'), color: 'bg-purple-50 border-purple-200' },
+              { label: 'Interview Tips', count: getCount('interview'), color: 'bg-orange-50 border-orange-200' },
+              { label: 'CA Updates', count: getCount('current-affairs'), color: 'bg-green-50 border-green-200' },
             ].map((stat, i) => (
               <div key={i} className={`${stat.color} border rounded-lg p-4 text-center`}>
                 <div className="text-3xl font-bold">{stat.count}</div>
@@ -130,6 +80,13 @@ const UPSCAgent = () => {
               </div>
             ))}
           </div>
+
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+              <AlertCircle size={18} />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
 
           <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-4">
             <div>
@@ -198,65 +155,81 @@ const UPSCAgent = () => {
             ))}
           </div>
 
-          <div className="space-y-4">
-            {filteredNews.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <AlertCircle className="mx-auto mb-2" />
-                No items found in this category
-              </div>
-            ) : (
-              filteredNews.map((item) => (
-                <div
-                  key={item.id}
-                  className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition"
-                >
-                  <button
-                    onClick={() =>
-                      setExpandedCard(expandedCard === item.id ? null : item.id)
-                    }
-                    className="w-full p-4 text-left hover:bg-gray-50 transition"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-semibold px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                            {item.source}
-                          </span>
-                          <span className={`text-xs font-semibold px-2 py-1 rounded ${
-                            item.relevance === 'high'
-                              ? 'bg-red-100 text-red-700'
-                              : 'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {item.relevance === 'high' ? '⭐ High' : '⭐ Medium'} Relevance
-                          </span>
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-800">{item.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">
-                          📌 {item.topic} • {new Date(item.date).toLocaleDateString()}
-                        </p>
-                        <p className="text-sm text-gray-700 mt-2">{item.summary}</p>
-                      </div>
-                      <ChevronDown
-                        size={20}
-                        className={`text-gray-400 transition ${
-                          expandedCard === item.id ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </div>
-                  </button>
+          {loading && (
+            <div className="text-center py-12 text-gray-400">
+              <RefreshCw className="mx-auto mb-2 animate-spin" size={32} />
+              <p>Loading news from backend...</p>
+            </div>
+          )}
 
-                  {expandedCard === item.id && (
-                    <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-3">
-                      <div>
-                        <h4 className="font-semibold text-sm text-gray-700 mb-2">Detailed Content:</h4>
-                        <p className="text-sm text-gray-700 leading-relaxed">{item.content}</p>
-                      </div>
-                    </div>
-                  )}
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+              <AlertCircle size={18} />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <div className="space-y-4">
+              {filteredNews.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <AlertCircle className="mx-auto mb-2" />
+                  No items found in this category
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                filteredNews.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition"
+                  >
+                    <button
+                      onClick={() =>
+                        setExpandedCard(expandedCard === item.id ? null : item.id)
+                      }
+                      className="w-full p-4 text-left hover:bg-gray-50 transition"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-semibold px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                              {item.source}
+                            </span>
+                            <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                              item.relevance === 'high'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {item.relevance === 'high' ? '⭐ High' : '⭐ Medium'} Relevance
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-bold text-gray-800">{item.title}</h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            📌 {item.topic} • {new Date(item.date).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm text-gray-700 mt-2">{item.summary}</p>
+                        </div>
+                        <ChevronDown
+                          size={20}
+                          className={`text-gray-400 transition ${
+                            expandedCard === item.id ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {expandedCard === item.id && (
+                      <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-3">
+                        <div>
+                          <h4 className="font-semibold text-sm text-gray-700 mb-2">Detailed Content:</h4>
+                          <p className="text-sm text-gray-700 leading-relaxed">{item.content}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       );
     }
