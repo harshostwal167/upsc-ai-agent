@@ -1,0 +1,24 @@
+# Don't upload these folders/files
+
+# Python stuff
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+
+# Node stuff
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+
+# Secret files
+.env
+.env.local
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
