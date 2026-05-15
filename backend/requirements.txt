@@ -1,0 +1,34 @@
+# UPSC AI Agent - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+Flask==2.3.0
+Flask-CORS==4.0.0
+
+# AI & NLP
+anthropic==0.7.0
+
+# News Fetching
+feedparser==6.0.10
+requests==2.31.0
+beautifulsoup4==4.12.0
+
+# Scheduling
+APScheduler==3.10.0
+
+# Database
+sqlite3  # Built-in
+
+# Configuration
+python-dotenv==1.0.0
+
+# Optional: For production
+gunicorn==21.0.0
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Optional: For email notifications
+secure-smtplib==0.1.1
+
+# Optional: For advanced logging
+python-json-logger==2.0.7
